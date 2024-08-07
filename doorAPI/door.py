@@ -70,7 +70,7 @@ def control_door(value):
             time.sleep(0.3)
             control_led(True, False)  # 빨:on 초:off
             time.sleep(0.3)
-        time.sleep(1.5)
+        time.sleep(0.5)
     write_to_lcd("Please verify\nyour identity")
 
 

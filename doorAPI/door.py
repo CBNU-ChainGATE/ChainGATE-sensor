@@ -50,31 +50,39 @@ def write_to_lcd(message):
     lcd.message = message
 
 
-def control_led(value):
+def control_led(red_status, green_status):
+    red_led.value = red_status
+    green_led.value = green_status
+
+
+def control_door(value):
     if value:  # True일 경우 (1을 받았을 때)
-        red_led.value = False  # 빨간 LED 끄기
-        green_led.value = True  # 초록 LED 켜기
         write_to_lcd("Open the door")
+        control_led(False, True)  # 빨:off 초:on
         time.sleep(2)
-        red_led.value = True  # 빨간 LED 켜기
-        green_led.value = False  # 초록 LED 끄기
+        control_led(True, False)  # 빨:on 초:off
     else:  # False일 경우 (0을 받았을 때)
-        red_led.value = True  # 빨간 LED 켜기
-        green_led.value = False  # 초록 LED 끄기
         write_to_lcd("Entry denied")
-        time.sleep(2)
+        control_led(True, False)  # 빨:on 초:off
+        time.sleep(0.3)
+        for _ in range(2):
+            control_led(False, False)  # 빨:off 초:off
+            time.sleep(0.3)
+            control_led(True, False)  # 빨:on 초:off
+            time.sleep(0.3)
+        time.sleep(1.5)
     write_to_lcd("Please verify\nyour identity")
 
 
 @app.route('/door', methods=['POST'])
-def led_control():
+def door_control():
     data = request.get_json()
     value = data.get('value')
 
     if value is None or value not in [0, 1]:
         return jsonify({'error': 'Invalid value, must be 0 or 1'}), 400
 
-    control_led(value)
+    control_door(value)
     return jsonify({'status': 'success'}), 200
 
 

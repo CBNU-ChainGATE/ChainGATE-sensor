@@ -42,23 +42,28 @@ pwm_pin = board.D18  # Select a suitable PWM pin
 pwm = PWMOut(pwm_pin, frequency=1000, duty_cycle=0)  # 1 kHz PWM
 
 pwm.duty_cycle = PWN_PERCENT * 65535 / 100
-lcd.message = "Please verify your identity"
+lcd.message = "Please verify\nyour identity"
+
+
+def write_to_lcd(message):
+    lcd.clear()
+    lcd.message = message
 
 
 def control_led(value):
     if value:  # True일 경우 (1을 받았을 때)
         red_led.value = False  # 빨간 LED 끄기
         green_led.value = True  # 초록 LED 켜기
-        lcd.message = "Open the door"
+        write_to_lcd("Open the door")
         time.sleep(2)
         red_led.value = True  # 빨간 LED 켜기
         green_led.value = False  # 초록 LED 끄기
     else:  # False일 경우 (0을 받았을 때)
         red_led.value = True  # 빨간 LED 켜기
         green_led.value = False  # 초록 LED 끄기
-        lcd.message = "Entry denied"
-        time.sleep(1)
-    lcd.message = "Please verify your identity"
+        write_to_lcd("Entry denied")
+        time.sleep(2)
+    write_to_lcd("Please verify\nyour identity")
 
 
 @app.route('/door', methods=['POST'])

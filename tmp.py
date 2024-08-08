@@ -153,7 +153,7 @@ def enroll_finger(finger, employee_id):
             write_to_lcd("Place finger\non sensor...")
             print("Place finger on sensor...", end="")
         else:
-            write_to_lcd("Place same finger\nagain...")
+            write_to_lcd("Place finger\nagain...")
             print("Place same finger again...", end="")
 
         while True:
@@ -197,6 +197,8 @@ def enroll_finger(finger, employee_id):
 
     remove_available_location(location)
     write_to_lcd("Enrolled\nsuccessfully")
+    time.sleep(2)
+    write_to_lcd("Please verify\nyour identity")
     return {"success": True, "message": "Fingerprint enrolled successfully."}
 
 
@@ -218,6 +220,8 @@ def delete_finger(finger, employee_id):
                 if i == adafruit_fingerprint.OK:
                     add_available_location(location)
                     write_to_lcd("Deleted\nsuccessfully")
+                    time.sleep(2)
+                    write_to_lcd("Please verify\nyour identity")
                     return {"success": True, "message": "Fingerprint deleted successfully."}
                 else:
                     return {"success": False, "message": "Sensor deletion error"}
@@ -231,6 +235,8 @@ def delete_finger(finger, employee_id):
 
 def search_finger(finger):
     """지문을 스캔하여 데이터베이스에서 일치하는 정보를 조회합니다."""
+    write_to_lcd("Place finger\non sensor...")
+    print("Place finger on sensor...", end="")
     while True:
         i = finger.get_image()
         if i == adafruit_fingerprint.OK:

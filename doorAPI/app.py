@@ -25,7 +25,7 @@ green_led.value = False
 """LCD"""
 lcd_columns = 16
 lcd_rows = 2
-PWN_PERCENT = 50
+PWN_PERCENT = 30
 
 lcd_rs = DigitalInOut(board.D7)
 lcd_en = DigitalInOut(board.D8)

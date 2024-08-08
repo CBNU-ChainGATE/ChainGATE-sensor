@@ -287,7 +287,7 @@ def search_finger(finger):
                     employee_id = result[0]
                     return {"success": True, "employee_id": employee_id}
                 else:
-                    error_to_lcd("No found\nEmployee_ID!")
+                    # error_to_lcd("No found\nEmployee_ID!")
                     return {"success": False, "message": "No matching employee_ID found."}
         except Exception as e:
             error_to_lcd("Database error!")
@@ -296,7 +296,7 @@ def search_finger(finger):
             conn.close()
     else:
         if i == adafruit_fingerprint.NOTFOUND:
-            error_to_lcd("No found\nFingerprint!")
+            # error_to_lcd("No found\nFingerprint!")
             return {"success": False, "message": "No matching Fingerprint found"}
         elif i == adafruit_fingerprint.PACKAGESENDERR:
             error_to_lcd("Communication\nerror!")

@@ -256,14 +256,14 @@ def search_finger(finger):
                     employee_id = result[0]
                     return {"success": True, "employee_id": employee_id}
                 else:
-                    return {"success": False, "message": "No matching employee ID found."}
+                    return {"success": False, "message": "No matching employee_ID found."}
         except Exception as e:
             return {"success": False, "message": f"Database error: {e}"}
         finally:
             conn.close()
     else:
         if i == adafruit_fingerprint.NOTFOUND:
-            return {"success": False, "message": "No match found"}
+            return {"success": False, "message": "No matching Fingerprint found"}
         elif i == adafruit_fingerprint.PACKAGESENDERR:
             return {"success": False, "message": "Communication error"}
         else:

@@ -52,6 +52,12 @@ uart = serial.Serial("/dev/ttyS0", baudrate=57600, timeout=1)
 finger = adafruit_fingerprint.Adafruit_Fingerprint(uart)
 
 
+def error_to_lcd(error_message):
+    write_to_lcd(error_message)
+    time.sleep(2)
+    write_to_lcd("Please verify\nyour identity")
+
+
 def write_to_lcd(message):
     lcd.clear()
     lcd.message = message
@@ -108,6 +114,7 @@ def get_next_available_location():
                 return max_location + 1
 
     except Exception as e:
+        error_to_lcd("Database error!")
         print(f"Database error: {e}")
     finally:
         conn.close()
@@ -123,6 +130,7 @@ def add_available_location(location):
             cursor.execute(sql, (location,))
         conn.commit()
     except Exception as e:
+        error_to_lcd("Database error!")
         print(f"Database error: {e}")
     finally:
         conn.close()
@@ -137,6 +145,7 @@ def remove_available_location(location):
             cursor.execute(sql, (location,))
         conn.commit()
     except Exception as e:
+        error_to_lcd("Database error!")
         print(f"Database error: {e}")
     finally:
         conn.close()
@@ -163,12 +172,15 @@ def enroll_finger(finger, employee_id):
             if i == adafruit_fingerprint.NOFINGER:
                 continue
             elif i == adafruit_fingerprint.IMAGEFAIL:
+                error_to_lcd("Imaging error!")
                 return {"success": False, "message": "Imaging error"}
             else:
+                error_to_lcd("Other error!")
                 return {"success": False, "message": "Other error"}
 
         i = finger.image_2_tz(fingerimg)
         if i != adafruit_fingerprint.OK:
+            error_to_lcd("Templating\nerror!")
             return {"success": False, "message": "Templating error"}
 
         if fingerimg == 1:
@@ -178,10 +190,12 @@ def enroll_finger(finger, employee_id):
 
     i = finger.create_model()
     if i != adafruit_fingerprint.OK:
+        error_to_lcd("Other error!")
         return {"success": False, "message": "Model creation error"}
 
     i = finger.store_model(location)
     if i != adafruit_fingerprint.OK:
+        error_to_lcd("Storing model\nerror!")
         return {"success": False, "message": "Storing model error"}
 
     try:
@@ -191,6 +205,7 @@ def enroll_finger(finger, employee_id):
             cursor.execute(sql, (location, employee_id))
         conn.commit()
     except Exception as e:
+        error_to_lcd("Database error!")
         return {"success": False, "message": f"Database error: {e}"}
     finally:
         conn.close()
@@ -224,10 +239,13 @@ def delete_finger(finger, employee_id):
                     write_to_lcd("Please verify\nyour identity")
                     return {"success": True, "message": "Fingerprint deleted successfully."}
                 else:
+                    error_to_lcd("Sensor deletion\nerror!")
                     return {"success": False, "message": "Sensor deletion error"}
             else:
+                error_to_lcd("No found\nFingerprint!")
                 return {"success": False, "message": "No matching fingerprint found for the given employee ID."}
     except Exception as e:
+        error_to_lcd("Database error!")
         return {"success": False, "message": f"Database error: {e}"}
     finally:
         conn.close()
@@ -244,12 +262,15 @@ def search_finger(finger):
         if i == adafruit_fingerprint.NOFINGER:
             continue
         elif i == adafruit_fingerprint.IMAGEFAIL:
+            error_to_lcd("Imaging error!")
             return {"success": False, "message": "Imaging error"}
         else:
+            error_to_lcd("Other error!")
             return {"success": False, "message": "Other error"}
 
     i = finger.image_2_tz(1)
     if i != adafruit_fingerprint.OK:
+        error_to_lcd("Templating\nerror!")
         return {"success": False, "message": "Templating error"}
 
     i = finger.finger_search()
@@ -266,17 +287,22 @@ def search_finger(finger):
                     employee_id = result[0]
                     return {"success": True, "employee_id": employee_id}
                 else:
+                    error_to_lcd("No found\nEmployee_ID!")
                     return {"success": False, "message": "No matching employee_ID found."}
         except Exception as e:
+            error_to_lcd("Database error!")
             return {"success": False, "message": f"Database error: {e}"}
         finally:
             conn.close()
     else:
         if i == adafruit_fingerprint.NOTFOUND:
+            error_to_lcd("No found\nFingerprint!")
             return {"success": False, "message": "No matching Fingerprint found"}
         elif i == adafruit_fingerprint.PACKAGESENDERR:
+            error_to_lcd("Communication\nerror!")
             return {"success": False, "message": "Communication error"}
         else:
+            error_to_lcd("Other\nerror!")
             return {"success": False, "message": "Other error"}
 
 

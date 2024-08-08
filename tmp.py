@@ -150,8 +150,10 @@ def enroll_finger(finger, employee_id):
 
     for fingerimg in range(1, 3):
         if fingerimg == 1:
+            write_to_lcd("Place finger\non sensor...")
             print("Place finger on sensor...", end="")
         else:
+            write_to_lcd("Place same finger\nagain...")
             print("Place same finger again...", end="")
 
         while True:
@@ -194,6 +196,7 @@ def enroll_finger(finger, employee_id):
         conn.close()
 
     remove_available_location(location)
+    write_to_lcd("Enrolled\nsuccessfully")
     return {"success": True, "message": "Fingerprint enrolled successfully."}
 
 
@@ -214,6 +217,7 @@ def delete_finger(finger, employee_id):
                 i = finger.delete_model(location)
                 if i == adafruit_fingerprint.OK:
                     add_available_location(location)
+                    write_to_lcd("Deleted\nsuccessfully")
                     return {"success": True, "message": "Fingerprint deleted successfully."}
                 else:
                     return {"success": False, "message": "Sensor deletion error"}

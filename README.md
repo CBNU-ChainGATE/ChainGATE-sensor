@@ -2,14 +2,14 @@
 
 Sensor API server
 
-# How to start the CA server
+# How to start the Sensor API server
 
 ```
 $ cd ChainGATE-sensor/
 $ python3 app.py
 ```
 
-# CA Server API GUIDE
+# Sensor API GUIDE
 
 ### 1. /finger/enroll [POST]
 

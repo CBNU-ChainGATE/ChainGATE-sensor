@@ -37,4 +37,4 @@ $ python3 app.py
 
 |   Key   |  Value   | Type |
 | :-----: | :------: | :--: |
-| "value" | 0 또는 1 | char |
+| "value" | 0 또는 1 | int  |

@@ -1,3 +1,4 @@
+
 from flask import Flask, request, jsonify
 import board
 from digitalio import DigitalInOut, Direction
@@ -8,6 +9,7 @@ import time
 import pymysql
 import adafruit_fingerprint
 import serial
+import RPi.GPIO as GPIO
 
 app = Flask(__name__)
 
@@ -17,13 +19,11 @@ RED_LED_PIN = board.D17
 GREEN_LED_PIN = board.D27
 red_led = DigitalInOut(RED_LED_PIN)
 green_led = DigitalInOut(GREEN_LED_PIN)
-
 red_led.direction = Direction.OUTPUT
 green_led.direction = Direction.OUTPUT
 
-# 초기 상태 설정: 빨간 LED 켜기
-red_led.value = True
-green_led.value = False
+red_led.value = True    # 초기 상태 설정: 빨간 LED 켜기
+green_led.value = False  # 초기 상태 설정: 초록 LED 끄기
 
 """LCD"""
 lcd_columns = 16
@@ -36,26 +36,32 @@ lcd_d4 = DigitalInOut(board.D9)
 lcd_d5 = DigitalInOut(board.D10)
 lcd_d6 = DigitalInOut(board.D11)
 lcd_d7 = DigitalInOut(board.D12)
-
 lcd = Character_LCD_Mono(
     lcd_rs, lcd_en, lcd_d4, lcd_d5, lcd_d6, lcd_d7, lcd_columns, lcd_rows)
 
-# Initialize PWM for contrast control
-pwm_pin = board.D18  # Select a suitable PWM pin
-pwm = PWMOut(pwm_pin, frequency=1000, duty_cycle=0)  # 1 kHz PWM
+# LCD 대비 조정
+lcd_pwm_pin = board.D18  # Select a suitable PWM pin
+lcd_pwm = PWMOut(lcd_pwm_pin, frequency=1000, duty_cycle=0)  # 1 kHz PWM
+lcd_pwm.duty_cycle = PWN_PERCENT * 65535 / 100
 
-pwm.duty_cycle = PWN_PERCENT * 65535 / 100
-lcd.message = "Please verify\nyour identity"
+"""Servo Motor"""
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(26, GPIO.OUT)
+phz = GPIO.PWM(26, 100)
+phz.start(5)
 
+"""Fingerprint"""
 # 전역 변수
 uart = serial.Serial("/dev/ttyS0", baudrate=57600, timeout=1)
 finger = adafruit_fingerprint.Adafruit_Fingerprint(uart)
 
 
+############## Function ##############
 def error_to_lcd(error_message):
     write_to_lcd(error_message)
+    blink_red_led()
     time.sleep(2)
-    write_to_lcd("Please verify\nyour identity")
+    door_init()
 
 
 def write_to_lcd(message):
@@ -68,23 +74,50 @@ def control_led(red_status, green_status):
     green_led.value = green_status
 
 
-def control_door(value):
-    if value:  # True일 경우 (1을 받았을 때)
-        write_to_lcd("Open the door")
-        control_led(False, True)  # 빨:off 초:on
-        time.sleep(2)
-        control_led(True, False)  # 빨:on 초:off
-    else:  # False일 경우 (0을 받았을 때)
-        write_to_lcd("Entry denied")
+def blink_red_led():
+    # control_led(True, False)  # 빨:on 초:off
+    # time.sleep(0.3)
+    for _ in range(2):
+        control_led(False, False)  # 빨:off 초:off
+        time.sleep(0.3)
         control_led(True, False)  # 빨:on 초:off
         time.sleep(0.3)
-        for _ in range(2):
-            control_led(False, False)  # 빨:off 초:off
-            time.sleep(0.3)
-            control_led(True, False)  # 빨:on 초:off
-            time.sleep(0.3)
-        time.sleep(0.5)
+
+
+def control_servo(angle):
+    duty = float(angle) / 10.1 + 4.1  # 서보모터 초기상태
+    # duty = float(angle) / 10.0 + 2.5  # 서보모터 초기상태
+    phz.ChangeDutyCycle(duty)
+
+
+def open_door():
+    write_to_lcd("Open the door")
+    control_led(False, True)  # 빨:off 초:on
+    control_servo(180)
+    time.sleep(2)
+
+
+def close_door():
+    write_to_lcd("Entry denied")
+    control_servo(90)
+    blink_red_led()
+    time.sleep(0.5)
+
+
+def door_init():
+    """door 초기상태"""
+    control_led(True, False)  # 빨:on 초:off
+    control_servo(90)
     write_to_lcd("Please verify\nyour identity")
+
+
+def control_door(value):
+    if value:  # True일 경우 (1을 받았을 때)
+        open_door()
+    else:  # False일 경우 (0을 받았을 때)
+        close_door()
+    # 초기상태
+    door_init()
 
 
 def get_db_connection():
@@ -189,8 +222,11 @@ def enroll_finger(finger, employee_id):
                 i = finger.get_image()
 
     i = finger.create_model()
-    if i != adafruit_fingerprint.OK:
-        error_to_lcd("Other error!")
+    if i == adafruit_fingerprint.ENROLLMISMATCH:
+        error_to_lcd("Finger mismatch!\nTry again")
+        return {"success": False, "message": "Finger mismatch. Please try again."}
+    elif i != adafruit_fingerprint.OK:
+        error_to_lcd("Model creation\nerror!")
         return {"success": False, "message": "Model creation error"}
 
     i = finger.store_model(location)
@@ -212,8 +248,9 @@ def enroll_finger(finger, employee_id):
 
     remove_available_location(location)
     write_to_lcd("Enrolled\nsuccessfully")
+    control_led(False, True)
     time.sleep(2)
-    write_to_lcd("Please verify\nyour identity")
+    door_init()
     return {"success": True, "message": "Fingerprint enrolled successfully."}
 
 
@@ -235,14 +272,12 @@ def delete_finger(finger, employee_id):
                 if i == adafruit_fingerprint.OK:
                     add_available_location(location)
                     write_to_lcd("Deleted\nsuccessfully")
-                    time.sleep(2)
-                    write_to_lcd("Please verify\nyour identity")
                     return {"success": True, "message": "Fingerprint deleted successfully."}
                 else:
                     error_to_lcd("Sensor deletion\nerror!")
                     return {"success": False, "message": "Sensor deletion error"}
             else:
-                error_to_lcd("No found\nFingerprint!")
+                error_to_lcd("No found\nEmployee_ID!")
                 return {"success": False, "message": "No matching fingerprint found for the given employee ID."}
     except Exception as e:
         error_to_lcd("Database error!")
@@ -296,7 +331,7 @@ def search_finger(finger):
             conn.close()
     else:
         if i == adafruit_fingerprint.NOTFOUND:
-            # error_to_lcd("No found\nFingerprint!")
+            error_to_lcd("No found\nFingerprint!")
             return {"success": False, "message": "No matching Fingerprint found"}
         elif i == adafruit_fingerprint.PACKAGESENDERR:
             error_to_lcd("Communication\nerror!")
@@ -304,18 +339,6 @@ def search_finger(finger):
         else:
             error_to_lcd("Other\nerror!")
             return {"success": False, "message": "Other error"}
-
-
-@app.route('/door', methods=['POST'])
-def door_control():
-    data = request.get_json()
-    value = data.get('value')
-
-    if value is None or value not in [0, 1]:
-        return jsonify({'error': 'Invalid value, must be 0 or 1'}), 400
-
-    control_door(value)
-    return jsonify({'status': 'success'}), 200
 
 
 @app.route('/finger/enroll', methods=['POST'])
@@ -328,6 +351,10 @@ def enroll():
         return jsonify({"success": False, "message": "Employee ID is required."}), 400
 
     result = enroll_finger(finger, employee_id)
+    if result['success']:
+        control_led(False, True)
+        time.sleep(2)
+    door_init()
     return jsonify(result)
 
 
@@ -341,6 +368,10 @@ def delete():
         return jsonify({"success": False, "message": "Employee ID is required."}), 400
 
     result = delete_finger(finger, employee_id)
+    if result['success']:
+        control_led(False, True)
+        time.sleep(2)
+    door_init()
     return jsonify(result)
 
 
@@ -348,8 +379,14 @@ def delete():
 def search():
     """지문 조회 API"""
     result = search_finger(finger)
+    if result['success']:
+        control_door(True)
+    else:
+        control_door(False)
     return jsonify(result)
 
 
 if __name__ == "__main__":
+    door_init()
     app.run(host='0.0.0.0', port=5001)
+

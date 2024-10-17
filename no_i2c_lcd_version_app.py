@@ -1,8 +1,8 @@
+
 from flask import Flask, request, jsonify
 import board
 from digitalio import DigitalInOut, Direction
-# from adafruit_character_lcd.character_lcd import Character_LCD_Mono
-import lcd_drivers
+from adafruit_character_lcd.character_lcd import Character_LCD_Mono
 import pwmio
 from pwmio import PWMOut
 import time
@@ -26,25 +26,23 @@ red_led.value = True    # 초기 상태 설정: 빨간 LED 켜기
 green_led.value = False  # 초기 상태 설정: 초록 LED 끄기
 
 """LCD"""
-display = lcd_drivers.Lcd()
+lcd_columns = 16
+lcd_rows = 2
+PWN_PERCENT = 30
 
-# lcd_columns = 16
-# lcd_rows = 2
-# PWN_PERCENT = 30
+lcd_rs = DigitalInOut(board.D7)
+lcd_en = DigitalInOut(board.D8)
+lcd_d4 = DigitalInOut(board.D9)
+lcd_d5 = DigitalInOut(board.D10)
+lcd_d6 = DigitalInOut(board.D11)
+lcd_d7 = DigitalInOut(board.D12)
+lcd = Character_LCD_Mono(
+    lcd_rs, lcd_en, lcd_d4, lcd_d5, lcd_d6, lcd_d7, lcd_columns, lcd_rows)
 
-# lcd_rs = DigitalInOut(board.D7)
-# lcd_en = DigitalInOut(board.D8)
-# lcd_d4 = DigitalInOut(board.D9)
-# lcd_d5 = DigitalInOut(board.D10)
-# lcd_d6 = DigitalInOut(board.D11)
-# lcd_d7 = DigitalInOut(board.D12)
-# lcd = Character_LCD_Mono(
-#     lcd_rs, lcd_en, lcd_d4, lcd_d5, lcd_d6, lcd_d7, lcd_columns, lcd_rows)
-
-# # LCD 대비 조정
-# lcd_pwm_pin = board.D18  # Select a suitable PWM pin
-# lcd_pwm = PWMOut(lcd_pwm_pin, frequency=1000, duty_cycle=0)  # 1 kHz PWM
-# lcd_pwm.duty_cycle = PWN_PERCENT * 65535 / 100
+# LCD 대비 조정
+lcd_pwm_pin = board.D18  # Select a suitable PWM pin
+lcd_pwm = PWMOut(lcd_pwm_pin, frequency=1000, duty_cycle=0)  # 1 kHz PWM
+lcd_pwm.duty_cycle = PWN_PERCENT * 65535 / 100
 
 """Servo Motor"""
 GPIO.setmode(GPIO.BCM)
@@ -59,24 +57,16 @@ finger = adafruit_fingerprint.Adafruit_Fingerprint(uart)
 
 
 ############## Function ##############
-def display_multiline(text):
-    display.lcd_clear()
-    # \n으로 분리하고 최대 2줄까지만 표시
-    for i, line in enumerate(text.split('\n')[:2], 1):
-        display.lcd_display_string(line, i)
-
-
-def write_to_lcd(message):
-    # lcd.clear()
-    # lcd.message = message
-    display_multiline(message)
-
-
 def error_to_lcd(error_message):
     write_to_lcd(error_message)
     blink_red_led()
     time.sleep(2)
     door_init()
+
+
+def write_to_lcd(message):
+    lcd.clear()
+    lcd.message = message
 
 
 def control_led(red_status, green_status):
@@ -341,7 +331,7 @@ def search_finger(finger):
             conn.close()
     else:
         if i == adafruit_fingerprint.NOTFOUND:
-            # error_to_lcd("No found\nFingerprint!")
+            error_to_lcd("No found\nFingerprint!")
             return {"success": False, "message": "No matching Fingerprint found"}
         elif i == adafruit_fingerprint.PACKAGESENDERR:
             error_to_lcd("Communication\nerror!")

@@ -1,15 +1,18 @@
-# Sensor API server
+## ChainGATE-sensor
 
-Sensor API server
 
-# How to start the Sensor API server
+## Description
+
+지문인식 자동문에서 동작하는 RaspberryPI 센서 동작 및 API
+
+## How to start the Sensor API server
 
 ```
 $ cd ChainGATE-sensor/
 $ python3 app.py
 ```
 
-# Sensor API GUIDE
+## Sensor API GUIDE
 
 ### 1. /finger/enroll [POST]
 

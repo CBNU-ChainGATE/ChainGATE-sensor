@@ -1,5 +1,4 @@
-## ChainGATE-sensor
-
+# ChainGATE-sensor
 
 ## Description
 
